@@ -111,7 +111,8 @@ NOTES:
  */
 int absVal(int x)
 {
-    return 42;
+    int y = x >> 31;
+    return (x ^ y) + !!y;
 }
 
 /*
@@ -124,7 +125,8 @@ int absVal(int x)
  */
 int addOK(int x, int y)
 {
-    return 42;
+    int z = x + y;
+    return !(((x ^ z) & (y ^ z)) >> 31);
 }
 
 /*
@@ -137,7 +139,11 @@ int addOK(int x, int y)
  */
 int allEvenBits(int x)
 {
-    return 42;
+    x &= x >> 16;
+    x &= x >> 8;
+    x &= x >> 4;
+    x &= x >> 2;
+    return x & 0x1;
 }
 
 /*
@@ -150,7 +156,11 @@ int allEvenBits(int x)
  */
 int allOddBits(int x)
 {
-    return 42;
+    x &= x >> 16;
+    x &= x >> 8;
+    x &= x >> 4;
+    x &= x >> 2;
+    return (x >> 1) & 0x1;
 }
 
 /*
@@ -163,7 +173,11 @@ int allOddBits(int x)
  */
 int anyEvenBit(int x)
 {
-    return 42;
+    x |= x >> 16;
+    x |= x >> 8;
+    x |= x >> 4;
+    x |= x >> 2;
+    return x & 0x1;
 }
 
 /*
@@ -176,7 +190,11 @@ int anyEvenBit(int x)
  */
 int anyOddBit(int x)
 {
-    return 42;
+    x |= x >> 16;
+    x |= x >> 8;
+    x |= x >> 4;
+    x |= x >> 2;
+    return (x >> 1) & 0x1;
 }
 
 /*
@@ -188,7 +206,7 @@ int anyOddBit(int x)
  */
 int bang(int x)
 {
-    return 42;
+    return ((x | (~x + 1)) >> 31) + 1;
 }
 
 /*
@@ -200,7 +218,7 @@ int bang(int x)
  */
 int bitAnd(int x, int y)
 {
-    return 42;
+    return ~(~x | ~y);
 }
 
 /*
@@ -212,7 +230,28 @@ int bitAnd(int x, int y)
  */
 int bitCount(int x)
 {
-    return 42;
+    int mask_01 = 0x55;
+    int mask_0011 = 0x33;
+    int mask_00001111 = 0x0F;
+    int mask_FF = 0xFF;
+
+    // mask 0x55555555
+    mask_01 = mask_01 | mask_01 << 8;
+    mask_01 = mask_01 | mask_01 << 16;
+    // mask 0x33333333
+    mask_0011 = mask_0011 | mask_0011 << 8;
+    mask_0011 = mask_0011 | mask_0011 << 16;
+    // mask 0x0F0F0F0F
+    mask_00001111 = mask_00001111 | mask_00001111 << 8;
+    mask_00001111 = mask_00001111 | mask_00001111 << 16;
+    // mask 0x00FF00FF
+    mask_FF = mask_FF | mask_FF << 16;
+
+    x = (x & mask_01) + ((x >> 1) & mask_01);
+    x = (x & mask_0011) + ((x >> 2) & mask_0011);
+    x = (x & mask_00001111) + ((x >> 4) & mask_00001111);
+    x = (x & mask_FF) + ((x >> 8) & mask_FF);
+    return (x + (x >> 16)) & 0xFF;
 }
 
 /*
@@ -227,7 +266,10 @@ int bitCount(int x)
  */
 int bitMask(int highbit, int lowbit)
 {
-    return 42;
+    int full_one = ~0x00;  // get 0xFFFFFFFF
+    int high_mask = (full_one << highbit) << 1;
+    int low_mask = full_one << lowbit;
+    return ~high_mask & low_mask;
 }
 
 /*
@@ -240,7 +282,7 @@ int bitMask(int highbit, int lowbit)
  */
 int bitMatch(int x, int y)
 {
-    return 42;
+    return ~(~x & y) & ~(x & ~y);
 }
 
 /*
@@ -252,7 +294,7 @@ int bitMatch(int x, int y)
  */
 int bitNor(int x, int y)
 {
-    return 42;
+    return ~x & ~y;
 }
 
 /*
@@ -264,7 +306,7 @@ int bitNor(int x, int y)
  */
 int bitOr(int x, int y)
 {
-    return 42;
+    return ~(~x & ~y);
 }
 
 /*
@@ -276,7 +318,12 @@ int bitOr(int x, int y)
  */
 int bitParity(int x)
 {
-    return 42;
+    x ^= x >> 16;
+    x ^= x >> 8;
+    x ^= x >> 4;
+    x ^= x >> 2;
+    x ^= x >> 1;
+    return x & 0x1;
 }
 
 /*
@@ -301,7 +348,7 @@ int bitReverse(int x)
  */
 int bitXor(int x, int y)
 {
-    return 42;
+    return ~(~(~x & y) & ~(x & ~y));
 }
 
 /*
@@ -315,7 +362,16 @@ int bitXor(int x, int y)
  */
 int byteSwap(int x, int n, int m)
 {
-    return 42;
+    int n_shift = n << 3;
+    int m_shift = m << 3;
+    int n_byte = (x >> n_shift) & 0xff;
+    int m_byte = (x >> m_shift) & 0xff;
+
+    x ^= m_byte << m_shift;
+    x |= n_byte << m_shift;
+    x ^= n_byte << n_shift;
+    x |= m_byte << n_shift;
+    return x;
 }
 
 /*
@@ -327,7 +383,9 @@ int byteSwap(int x, int n, int m)
  */
 int conditional(int x, int y, int z)
 {
-    return 42;
+    x = !!x;
+    x = ~x + 1;  // get all 0 or 1
+    return (x & y) | (~x & z);
 }
 
 /*

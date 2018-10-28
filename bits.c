@@ -111,8 +111,8 @@ NOTES:
  */
 int absVal(int x)
 {
-    int y = x >> 31;
-    return (x ^ y) + !!y;
+    int y = x >> 30 >> 1;
+    return (x ^ y) + (~y + 1);
 }
 
 /*
@@ -126,7 +126,7 @@ int absVal(int x)
 int addOK(int x, int y)
 {
     int z = x + y;
-    return !(((x ^ z) & (y ^ z)) >> 31);
+    return !(((x ^ z) & (y ^ z)) >> 30 >> 1);
 }
 
 /*
@@ -206,7 +206,7 @@ int anyOddBit(int x)
  */
 int bang(int x)
 {
-    return ((x | (~x + 1)) >> 31) + 1;
+    return ((x | (~x + 1)) >> 30 >> 1) + 1;
 }
 
 /*
@@ -399,7 +399,36 @@ int conditional(int x, int y, int z)
  */
 int countLeadingZero(int x)
 {
-    return 42;
+    x |= x >> 16;
+    x |= x >> 8;
+    x |= x >> 4;
+    x |= x >> 2;
+    x |= x >> 1;
+    x = ~x;
+
+    // do bitCount
+    int mask_01 = 0x55;
+    int mask_0011 = 0x33;
+    int mask_00001111 = 0x0F;
+    int mask_FF = 0xFF;
+
+    // mask 0x55555555
+    mask_01 = mask_01 | mask_01 << 8;
+    mask_01 = mask_01 | mask_01 << 16;
+    // mask 0x33333333
+    mask_0011 = mask_0011 | mask_0011 << 8;
+    mask_0011 = mask_0011 | mask_0011 << 16;
+    // mask 0x0F0F0F0F
+    mask_00001111 = mask_00001111 | mask_00001111 << 8;
+    mask_00001111 = mask_00001111 | mask_00001111 << 16;
+    // mask 0x00FF00FF
+    mask_FF = mask_FF | mask_FF << 16;
+
+    x = (x & mask_01) + ((x >> 1) & mask_01);
+    x = (x & mask_0011) + ((x >> 2) & mask_0011);
+    x = (x & mask_00001111) + ((x >> 4) & mask_00001111);
+    x = (x & mask_FF) + ((x >> 8) & mask_FF);
+    return (x + (x >> 16)) & 0xFF;
 }
 
 /*
@@ -411,7 +440,8 @@ int countLeadingZero(int x)
  */
 int copyLSB(int x)
 {
-    return 42;
+    x = x & 0x1;
+    return ~x + 1;
 }
 
 /*
@@ -423,7 +453,7 @@ int copyLSB(int x)
  */
 int distinctNegation(int x)
 {
-    return 42;
+    return !!(x ^ (~x + 1));
 }
 
 /*
@@ -436,7 +466,10 @@ int distinctNegation(int x)
  */
 int dividePower2(int x, int n)
 {
-    return 42;
+    int missing_bit = !!(x ^ ((x >> n) << n));
+    int neg = x >> 31;
+
+    return (x >> n) + (missing_bit & neg);
 }
 
 /*
@@ -447,7 +480,10 @@ int dividePower2(int x, int n)
  */
 int evenBits(void)
 {
-    return 42;
+    int x = 0x55;
+    x |= x << 8;
+    x |= x << 16;
+    return x;
 }
 
 /*
@@ -463,7 +499,12 @@ int evenBits(void)
  */
 int ezThreeFourths(int x)
 {
-    return 42;
+    x = (x << 1) + x;  // 2x + x = 3x
+    // do dividePower2
+    int missing_bit = !!(x ^ ((x >> 2) << 2));
+    int neg = x >> 31;
+
+    return (x >> 2) + (missing_bit & neg);
 }
 
 /*
@@ -477,7 +518,9 @@ int ezThreeFourths(int x)
  */
 int fitsBits(int x, int n)
 {
-    return 42;
+    int shift = 32 + (~n + 1);  // same as 32 - n
+    int y = x << shift >> shift;
+    return !(x ^ y);
 }
 
 /*
@@ -490,7 +533,8 @@ int fitsBits(int x, int n)
  */
 int fitsShort(int x)
 {
-    return 42;
+    int y = x << 16 >> 16;
+    return !(x ^ y);
 }
 
 /*

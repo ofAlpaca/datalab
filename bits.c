@@ -467,7 +467,7 @@ int distinctNegation(int x)
 int dividePower2(int x, int n)
 {
     int missing_bit = !!(x ^ ((x >> n) << n));
-    int neg = x >> 31;
+    int neg = x >> 30 >> 1;
 
     return (x >> n) + (missing_bit & neg);
 }
@@ -502,7 +502,7 @@ int ezThreeFourths(int x)
     x = (x << 1) + x;  // 2x + x = 3x
     // do dividePower2
     int missing_bit = !!(x ^ ((x >> 2) << 2));
-    int neg = x >> 31;
+    int neg = x >> 30 >> 1;
 
     return (x >> 2) + (missing_bit & neg);
 }
@@ -550,7 +550,11 @@ int fitsShort(int x)
  */
 unsigned floatAbsVal(unsigned uf)
 {
-    return 42;
+    unsigned _exp = (uf >> 23) & 0xff;
+    unsigned _frac = uf << 9 >> 9;
+    if (!(_exp ^ 0xff) && _frac)
+        return uf;
+    return uf << 1 >> 1;
 }
 
 /*
@@ -581,7 +585,49 @@ int floatFloat2Int(unsigned uf)
  */
 unsigned floatInt2Float(int x)
 {
-    return 42;
+    unsigned _sign = 0, _exp = 0, _frac = 0, result = 0;
+    unsigned MSB = 1 << 31;
+    unsigned bias = 127;
+    int i = 0;
+
+    if (x >> 31) {
+        _sign = 1;
+        x = ~x + 1;
+    }
+
+    if (x != 0) {
+        while (!(x & MSB)) {
+            x = x << 1;
+            i = i + 1;
+        }
+        x = x << 1;
+        i = 31 - i;
+    } else
+        return 0;
+
+    _exp = bias + i;  // E = exp - bias
+    _frac = x;
+
+    result = _sign << 31;
+    result |= _exp << 23;
+    result |= _frac >> 9;
+
+    // check for rounding
+    if ((_frac >> 8) & 1) {
+        // truncated bits are more than 1/2
+        if (_frac & 0xff)  // has 1/2 and the further bits are not zero
+            return result + 1;
+        else {               // has 1/2 but the further bits are all zero
+                             // then, decided by the LSB
+            if (result & 1)  // LSB is 1, then add 1
+                return result + 1;
+            else  // LSB is 0, then don't add 1
+                return result;
+        }
+    }
+
+    // truncated bits are less than 1/2
+    return result;
 }
 
 /*
@@ -629,7 +675,11 @@ int floatIsLess(unsigned uf, unsigned ug)
  */
 unsigned floatNegate(unsigned uf)
 {
-    return 42;
+    unsigned _exp = (uf >> 23) & 0xff;
+    unsigned _frac = uf << 9 >> 9;
+    if (!(_exp ^ 0xff) && _frac)
+        return uf;
+    return (1 << 31) ^ uf;
 }
 
 /*
@@ -723,7 +773,8 @@ unsigned floatUnsigned2Float(unsigned u)
  */
 int getByte(int x, int n)
 {
-    return 42;
+    int shift = n << 3;
+    return (x >> shift) & 0xff;
 }
 
 /*
@@ -736,7 +787,14 @@ int getByte(int x, int n)
  */
 int greatestBitPos(int x)
 {
-    return 42;
+    x |= x >> 16;
+    x |= x >> 8;
+    x |= x >> 4;
+    x |= x >> 2;
+    x |= x >> 1;
+    int y = (x >> 1) & ~(1 << 31);
+
+    return x ^ y;
 }
 
 /* howManyBits - return the minimum number of bits required to represent x in
@@ -842,7 +900,13 @@ int isLess(int x, int y)
  */
 int isLessOrEqual(int x, int y)
 {
-    return 42;
+    int x_sign = !(x >> 31);
+    int y_sign = !(y >> 31);
+
+    int same_sign = x_sign ^ y_sign;
+    int z = !((y + (~x + 1)) >> 31);  // z >= 0 : 0, z < 0 : 1
+
+    return (z & (!same_sign)) | (y_sign & same_sign);
 }
 
 /*
@@ -915,7 +979,8 @@ int isPallindrome(int x)
  */
 int isPositive(int x)
 {
-    return 42;
+    int sign = ~(x >> 31);
+    return !!(x & sign);
 }
 
 /*
@@ -1016,7 +1081,8 @@ int logicalNeg(int x)
  */
 int logicalShift(int x, int n)
 {
-    return 42;
+    int mask = 1 << 31 >> n << 1;
+    return (x >> n) & ~mask;
 }
 
 /*
@@ -1077,7 +1143,7 @@ int multFiveEighths(int x)
  */
 int negate(int x)
 {
-    return 42;
+    return ~x + 1;
 }
 
 /*
@@ -1270,7 +1336,7 @@ int tmax(void)
  */
 int tmin(void)
 {
-    return 42;
+    return 1 << 31;
 }
 
 /*
